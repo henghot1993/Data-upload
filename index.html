@@ -75,7 +75,7 @@
       <label>ซ้ำกี่ชุด:</label>
       <input type="number" id="dupCount" value="13" min="2" max="1000" style="width:70px" disabled>
     </div>
-    <div class="dup-note">* เมื่อเปิด: generate ข้อมูล 1 ชุด แต่ซ้ำตามจำนวนที่กำหนด (ค่า value=1 fixed) — จำนวนข้างบนจะถูกแทนที่</div>
+    <div class="dup-note">* เมื่อเปิด: generate ตามจำนวนที่กำหนด แต่ละคนซ้ำตามจำนวน dup — เช่น จำนวน=10, ซ้ำ=15 → ได้ 150 แถว</div>
   </div>
 
   <button class="btn-copy-all" id="btnCopyAll" onclick="copyAll()" disabled>📋 Copy ทั้งหมด (วางใน Excel ได้เลย)</button>
@@ -283,18 +283,21 @@ function generate() {
   colData = { id: [], thFirst: [], thLast: [], enFirst: [], enLast: [] };
 
   if (dupOn) {
-    const g = gender === 'all' ? (Math.random() < 0.5 ? 'male' : 'female') : gender;
-    const namePair = getRandom(g === 'male' ? maleNames : femaleNames);
-    const lastPair = getRandom(lastNamePairs);
-    const oneID    = generateOneID();
-    for (let i = 0; i < dupN; i++) {
-      colData.id.push(oneID);
-      colData.thFirst.push(namePair[0]);
-      colData.thLast.push(lastPair[0]);
-      colData.enFirst.push(namePair[1]);
-      colData.enLast.push(lastPair[1]);
+    // gen count คน แต่ละคนซ้ำ dupN แถว = count × dupN แถวรวม
+    for (let p = 0; p < count; p++) {
+      const g = gender === 'all' ? (Math.random() < 0.5 ? 'male' : 'female') : gender;
+      const namePair = getRandom(g === 'male' ? maleNames : femaleNames);
+      const lastPair = getRandom(lastNamePairs);
+      const oneID    = generateOneID();
+      for (let i = 0; i < dupN; i++) {
+        colData.id.push(oneID);
+        colData.thFirst.push(namePair[0]);
+        colData.thLast.push(lastPair[0]);
+        colData.enFirst.push(namePair[1]);
+        colData.enLast.push(lastPair[1]);
+      }
     }
-    count = dupN;
+    count = count * dupN;
   } else {
     // แยก gender pool
     const isMaleMode   = gender === 'male';
@@ -353,7 +356,7 @@ function generate() {
   });
 
   const label = dupOn
-    ? `✅ Duplicate mode: สร้าง ${count.toLocaleString()} รายการ (ข้อมูลชุดเดียวกัน)`
+    ? `✅ Duplicate mode: ${(count/dupN).toLocaleString()} คน × ${dupN} ซ้ำ = ${colData.id.length.toLocaleString()} แถว`
     : `✅ สร้างแล้ว ${colData.id.length.toLocaleString()} รายการ (ชื่อ+นามสกุลไม่ซ้ำกันทุกแถว)`;
   document.getElementById('status').textContent = label;
 }
