@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>QA Test Data Generator พี่เอง</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f7fa; min-height: 100vh; padding: 20px 16px; }
+    .container { background: white; border-radius: 12px; padding: 24px 20px; width: 100%; max-width: 980px; margin: 0 auto; box-shadow: 0 2px 16px rgba(0,0,0,0.1); }
+    h1 { font-size: 1.4rem; margin-bottom: 6px; color: #1a1a2e; }
+    .subtitle { color: #666; margin-bottom: 18px; font-size: 0.9rem; }
+
+    /* --- controls --- */
+    .row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    label { font-size: 0.9rem; color: #444; white-space: nowrap; }
+    input[type="number"] { width: 90px; padding: 10px 12px; font-size: 1rem; border: 1.5px solid #ccc; border-radius: 8px; outline: none; }
+    input[type="number"]:focus { border-color: #3b82f6; }
+    .gender-btn { padding: 8px 16px; border: 1.5px solid #ccc; border-radius: 8px; background: white; cursor: pointer; font-size: 0.9rem; transition: all .15s; }
+    .gender-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .btn-generate { background: #3b82f6; color: white; border: none; padding: 11px 24px; font-size: 1rem; border-radius: 8px; cursor: pointer; }
+    .btn-generate:active { background: #2563eb; }
+
+    /* --- duplicate box --- */
+    .dup-box { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+    .dup-title { font-size: 0.85rem; font-weight: bold; color: #166534; margin-bottom: 10px; }
+    .dup-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .dup-row label { color: #444; }
+    .dup-note { font-size: 0.8rem; color: #6b7280; margin-top: 6px; }
+
+    /* --- copy all --- */
+    .btn-copy-all { background: #22c55e; color: white; border: none; padding: 11px 20px; font-size: 0.95rem; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 16px; }
+    .btn-copy-all:disabled { background: #9ca3af; cursor: default; }
+    .btn-copy-all:active { background: #16a34a; }
+
+    /* --- status --- */
+    .status { font-size: 0.85rem; color: #16a34a; margin-bottom: 12px; min-height: 18px; }
+
+    /* --- columns --- */
+    .section-label { font-size: 0.8rem; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; margin-top: 6px; }
+    .cols { display: flex; gap: 12px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 180px; }
+    .col-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .col-label { font-weight: bold; font-size: 0.9rem; color: #333; }
+    .btn-copy { background: #22c55e; color: white; border: none; padding: 5px 12px; font-size: 0.82rem; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+    .btn-copy:disabled { background: #9ca3af; cursor: default; }
+    .btn-copy:active { background: #16a34a; }
+    textarea { width: 100%; height: 220px; padding: 10px; font-size: 0.88rem; font-family: 'Courier New', monospace; border: 1.5px solid #ccc; border-radius: 8px; resize: vertical; color: #333; }
+    .copied-hint { font-size: 0.78rem; color: #16a34a; min-height: 16px; margin-top: 3px; }
+    hr { border: none; border-top: 1.5px dashed #e5e7eb; margin: 16px 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 QA Test Data Generator พี่เอง</h1>
+  <p class="subtitle">สร้างเลขบัตรประชาชน + ชื่อ-นามสกุล ไทย/อังกฤษ สำหรับ Test (สูงสุด 10,000/เพศ | ชื่อ+นามสกุลไม่ซ้ำกัน)</p>
+
+  <!-- controls -->
+  <div class="row">
+    <label>จำนวน:</label>
+    <input type="number" id="count" value="10" min="1" max="20000" inputmode="numeric">
+    <label>เพศ:</label>
+    <button class="gender-btn active" onclick="setGender('all',this)">ทั้งหมด</button>
+    <button class="gender-btn" onclick="setGender('male',this)">ชาย</button>
+    <button class="gender-btn" onclick="setGender('female',this)">หญิง</button>
+    <button class="btn-generate" onclick="generate()">▶ Generate</button>
+  </div>
+
+  <!-- duplicate mode -->
+  <div class="dup-box">
+    <div class="dup-title">🔁 Duplicate Mode — ทดสอบข้อมูลซ้ำ (Contact Name is duplicated)</div>
+    <div class="dup-row">
+      <label>เปิดใช้:</label>
+      <input type="checkbox" id="dupEnable" onchange="document.getElementById('dupCount').disabled=!this.checked">
+      <label>ซ้ำกี่ชุด:</label>
+      <input type="number" id="dupCount" value="13" min="2" max="1000" style="width:70px" disabled>
+    </div>
+    <div class="dup-note">* เมื่อเปิด: generate ข้อมูล 1 ชุด แต่ซ้ำตามจำนวนที่กำหนด (ค่า value=1 fixed) — จำนวนข้างบนจะถูกแทนที่</div>
+  </div>
+
+  <button class="btn-copy-all" id="btnCopyAll" onclick="copyAll()" disabled>📋 Copy ทั้งหมด (วางใน Excel ได้เลย)</button>
+  <div class="status" id="status"></div>
+
+  <!-- ID column -->
+  <div class="section-label">🪪 เลขบัตรประชาชน</div>
+  <div class="cols">
+    <div class="col">
+      <div class="col-header">
+        <span class="col-label">เลขบัตร 13 หลัก</span>
+        <button class="btn-copy" id="copyId" onclick="copyCol('id')" disabled>📋 Copy</button>
+      </div>
+      <textarea id="outId" readonly placeholder="เลขบัตรประชาชน..."></textarea>
+      <div class="copied-hint" id="hintId"></div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- TH name columns -->
+  <div class="section-label">🇹🇭 ภาษาไทย</div>
+  <div class="cols">
+    <div class="col">
+      <div class="col-header">
+        <span class="col-label">ชื่อ</span>
+        <button class="btn-copy" id="copyThFirst" onclick="copyCol('thFirst')" disabled>📋 Copy</button>
+      </div>
+      <textarea id="outThFirst" readonly placeholder="ชื่อภาษาไทย..."></textarea>
+      <div class="copied-hint" id="hintThFirst"></div>
+    </div>
+    <div class="col">
+      <div class="col-header">
+        <span class="col-label">นามสกุล</span>
+        <button class="btn-copy" id="copyThLast" onclick="copyCol('thLast')" disabled>📋 Copy</button>
+      </div>
+      <textarea id="outThLast" readonly placeholder="นามสกุลภาษาไทย..."></textarea>
+      <div class="copied-hint" id="hintThLast"></div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- EN name columns -->
+  <div class="section-label">🇬🇧 ภาษาอังกฤษ (ทับศัพท์ตรงกับชื่อไทย)</div>
+  <div class="cols">
+    <div class="col">
+      <div class="col-header">
+        <span class="col-label">First Name</span>
+        <button class="btn-copy" id="copyEnFirst" onclick="copyCol('enFirst')" disabled>📋 Copy</button>
+      </div>
+      <textarea id="outEnFirst" readonly placeholder="First Name..."></textarea>
+      <div class="copied-hint" id="hintEnFirst"></div>
+    </div>
+    <div class="col">
+      <div class="col-header">
+        <span class="col-label">Last Name</span>
+        <button class="btn-copy" id="copyEnLast" onclick="copyCol('enLast')" disabled>📋 Copy</button>
+      </div>
+      <textarea id="outEnLast" readonly placeholder="Last Name..."></textarea>
+      <div class="copied-hint" id="hintEnLast"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== DATA ===================== */
+const maleNames = [
+  ['สมชาย','Somchai'],['สมศักดิ์','Somsak'],['วิชัย','Wichai'],['ประสิทธิ์','Prasit'],
+  ['อนุชา','Anucha'],['ธนากร','Thanakorn'],['กิตติ','Kitti'],['วรวุฒิ','Worawut'],
+  ['ภานุวัฒน์','Phanuwat'],['ณัฐพล','Nattaphon'],['ชาญณรงค์','Channarong'],['พิทักษ์','Phitak'],
+  ['เอกชัย','Eakchai'],['ศุภชัย','Supachai'],['ธีรพงษ์','Thiraphong'],['นพดล','Noppadon'],
+  ['ไพโรจน์','Phairot'],['ชัยวัฒน์','Chaiwat'],['ธวัชชัย','Thawatchai'],['ปิยะ','Piya'],
+  ['กฤษณะ','Kritsana'],['อภิชัย','Aphichai'],['วันชัย','Wanchai'],['สราวุธ','Sarawut'],
+  ['ธีระ','Thira'],['พงษ์ศักดิ์','Phongsak'],['ประพันธ์','Praphan'],['สุรชัย','Surachai'],
+  ['วิทยา','Wittaya'],['มนตรี','Montri'],['ศักดิ์ชัย','Sakchai'],['ประยุทธ์','Prayut'],
+  ['ณัฐวุฒิ','Nattawut'],['ภูมินทร์','Phumin'],['กานต์','Kan'],['ธนพล','Thanaphon'],
+  ['วุฒิชัย','Wuttichai'],['อดิศร','Adisorn'],['พีระ','Phira'],['สิทธิชัย','Sittichai'],
+  ['รัฐพล','Rattaphon'],['ชิตพล','Chitphon'],['นันทวัฒน์','Nantawat'],['สุทธิพงษ์','Suttiphong'],
+  ['ปรีชา','Pricha'],['ธนัช','Thanat'],['กวี','Kawi'],['พงศ์พัฒน์','Phongphat'],
+  ['ยุทธนา','Yutthana'],['เกียรติศักดิ์','Kiattisak'],['ภาสกร','Phasakorn'],['จตุรงค์','Chaturong'],
+  ['ณัฐกร','Nattakorn'],['วสันต์','Wasan'],['ปิติ','Piti'],['อิทธิพล','Ittiphon'],
+  ['สงกรานต์','Songkran'],['ธงชัย','Thongchai'],['วีรชัย','Wirachai'],['นิรันดร์','Niran'],
+  ['ไกรสร','Kraisorn'],['พชรพล','Phatcharaphon'],['สุรเชษฐ์','Surachet'],['ชยันต์','Chayan'],
+  ['ณัฐภัทร','Nattapat'],['ภัทรพล','Phattharaphon'],['กฤตเมธ','Krittamet'],['ชนินทร์','Chanin'],
+  ['พิสิทธิ์','Phisit'],['อลงกรณ์','Alongkorn'],['เจษฎา','Chetsada'],['ณัฐดนัย','Nattadanai'],
+  ['สิทธินนท์','Sithinon'],['พัฒนา','Phattana'],['ประกิต','Prakit'],['รังสิมันตุ์','Rangsiman'],
+  ['ดำรงค์','Damrong'],['พิพัฒน์','Phiphat'],['ชาติชาย','Chatchai'],['สุวิทย์','Suwit'],
+  ['กิตติพงษ์','Kittiphong'],['นิติพล','Nitiphon'],['อนันต์','Anan'],['ภูริ','Phuri'],
+  ['เกรียงไกร','Kriangkrai'],['วิโรจน์','Wirot'],['ชูเกียรติ','Chukiat'],['สมพร','Somporn'],
+  ['บรรจง','Banchong'],['ทวีศักดิ์','Thaweesak'],['ไพบูลย์','Phaibun'],['สมหมาย','Sommai'],
+  ['ประวิทย์','Prawit'],['วิเชียร','Wichian'],['บุญช่วย','Bunchuay'],['สายัณห์','Sayan'],
+  ['วีรพล','Wiraphon'],['ปราโมทย์','Pramot'],['บุญเลิศ','Bunlert'],['ณรงค์','Narong']
+];
+
+const femaleNames = [
+  ['สมหญิง','Somying'],['วิภา','Wipha'],['นภา','Napha'],['สุดา','Suda'],
+  ['มาลี','Mali'],['พรทิพย์','Phornthip'],['วันเพ็ญ','Wanphen'],['ศิริพร','Siriporn'],
+  ['อรุณี','Arunee'],['นิภา','Nipha'],['ปวีณา','Pawina'],['ชุติมา','Chutima'],
+  ['กัลยา','Kanlaya'],['สุภาพร','Supaporn'],['ธิดา','Thida'],['รัตนา','Rattana'],
+  ['เบญจมาศ','Benchamas'],['จิราภรณ์','Jiraphon'],['สุนีย์','Sunee'],['พัชรี','Phatchari'],
+  ['ดวงพร','Duangporn'],['ณัฐธิดา','Natthida'],['ปิยะดา','Piyada'],['วราภรณ์','Waraphon'],
+  ['อัญชลี','Anchalee'],['ลลิตา','Lalita'],['ภัทรา','Phattra'],['นันทิดา','Nanthida'],
+  ['ศศิธร','Sasithon'],['ชนิดา','Chanida'],['กนกวรรณ','Kanokwan'],['ทิพวรรณ','Thippawan'],
+  ['สุมาลี','Sumali'],['พิมพ์ใจ','Phimjai'],['วิลาวัณย์','Wilawan'],['มณีรัตน์','Manirat'],
+  ['ธนพร','Thanaporn'],['ชลธิชา','Chonthicha'],['ปณิตา','Panita'],['กาญจนา','Kanchana'],
+  ['เพ็ญพักตร์','Penpak'],['สิริลักษณ์','Sirilak'],['อรนุช','Oranuch'],['ภาวิณี','Phawini'],
+  ['ทัศนีย์','Thatsanee'],['สาวิตรี','Sawitri'],['จิตรา','Chittra'],['นงนุช','Nongnuch'],
+  ['ปราณี','Pranee'],['ลดาวัลย์','Ladawan'],['เสาวลักษณ์','Saowalak'],['ยุพิน','Yupin'],
+  ['ประภา','Prapha'],['รุ่งนภา','Rungnapa'],['สุวรรณา','Suwanna'],['พรพิมล','Phornphimon'],
+  ['ศิริวรรณ','Siriwan'],['ดาวเรือง','Daorueang'],['ขวัญใจ','Khwanjai'],['นิตยา','Nittaya'],
+  ['จุฑามาศ','Chuthamat'],['พิชญา','Phitchaya'],['ธัญวรัตน์','Thanwarat'],['อภิสรา','Aphisara'],
+  ['ณัชชา','Natcha'],['กัญญาณัฐ','Kanyanat'],['ชลิตา','Chalita'],['ปิยาภรณ์','Piyaphon'],
+  ['สุธาสินี','Suthasini'],['มุกดา','Mukda'],['วาสนา','Wasana'],['บุษบา','Butsaba'],
+  ['นฤมล','Naruemon'],['สุกัญญา','Sukanya'],['พิมพ์มาดา','Phimmada'],['ธนาพร','Thanaporn'],
+  ['ชญาน์นันท์','Chayannan'],['รัชนี','Ratchanee'],['ศุภลักษณ์','Suphalak'],['อมรรัตน์','Amornrat'],
+  ['จันทร์เพ็ญ','Chanphen'],['ปิยนุช','Piyanut'],['สมฤดี','Somruedee'],['ทิพย์สุดา','Thipsuda'],
+  ['พรชนก','Phornchanok'],['รุจิรา','Ruchira'],['สิรินทร์','Sirin'],['กมลวรรณ','Kamonwan'],
+  ['ภัสสร','Phatson'],['อินทิรา','Inthira'],['กุลธิดา','Kunthida'],['นภัสสร','Naphatson'],
+  ['ชัชฎาภรณ์','Chatchadaphon'],['จรินทร์','Charin'],['ทิพย์มณี','Thipmanee'],['เกศินี','Kasinee'],
+  ['สุพรรษา','Suphansa'],['ปริชาติ','Prichat'],['อาทิตยา','Athitaya'],['ศิริมา','Sirima']
+];
+
+const lastNamePairs = [
+  ['สมบูรณ์','Somboon'],['ศรีสุข','Srisuk'],['มีสุข','Meesuk'],['รักดี','Rakdi'],
+  ['ใจดี','Jaidi'],['ทองดี','Thongdi'],['แก้วมณี','Kaewmanee'],['สุขสวัสดิ์','Suksawat'],
+  ['วงษ์ทอง','Wonthong'],['พงษ์พันธ์','Phongphan'],['รัตนโชติ','Rattanachot'],['เพชรรัตน์','Phetrat'],
+  ['สุวรรณ','Suwan'],['ทองคำ','Thongkham'],['ศิริมงคล','Sirimongkol'],['พันธุ์ดี','Phandi'],
+  ['บุญมา','Bunma'],['คงดี','Khongdi'],['มั่งมี','Mangmi'],['อินทร์ทอง','Inthong'],
+  ['ชัยมงคล','Chaimongkol'],['บุญเรือง','Bunrueang'],['สมหวัง','Somwang'],['ทรัพย์สิน','Sapsin'],
+  ['นิลกำแหง','Ninkamhaeng'],['ประเสริฐ','Prasert'],['วิไลวรรณ','Wilaiwan'],['บุญญฤทธิ์','Bunyarit'],
+  ['สุขเกษม','Sukkasem'],['ดีงาม','Dingam'],['ทองแดง','Thongdaeng'],['ศรีทอง','Srithong'],
+  ['บุญรอด','Bunrot'],['แสงทอง','Saengthong'],['วงศ์สุวรรณ','Wongsuwan'],['พูลสวัสดิ์','Phunlasawat'],
+  ['จันทร์เพ็ง','Chanpheng'],['ดอกไม้','Dokmai'],['รุ่งเรือง','Rungrueang'],['เจริญสุข','Charoensuk'],
+  ['ทองใบ','Thongbai'],['บุญเพ็ง','Bunpheng'],['ศรีวิไล','Srivilai'],['พงษ์สุวรรณ','Phongsuwan'],
+  ['ชูศรี','Chusri'],['พรมมา','Phromma'],['บุญศรี','Bunsri'],['แก้วประเสริฐ','Kaewprasert'],
+  ['ทองสุข','Thongsuk'],['สุขประเสริฐ','Sukprasert'],['เหลืองอ่อน','Lueangon'],['แดงดี','Daengdi'],
+  ['จารุวรรณ','Charuwan'],['ศรีนวล','Srinuan'],['บุญทวี','Buntawi'],['พรมสิทธิ์','Phromsit'],
+  ['คำมูล','Khammuon'],['ยอดดี','Yotdi'],['หาญกล้า','Hankla'],['กล้าหาญ','Klahan'],
+  ['ทรงพล','Songphon'],['วิริยะ','Wiriya'],['มีชัย','Michai'],['ดวงดี','Duangdi'],
+  ['ฤทธิ์ดี','Ritdi'],['บุณยรัตน์','Bunyarat'],['อุดมพร','Udomphon'],['สุขสันต์','Suksan'],
+  ['พลอยงาม','Ploingam'],['ชนะภัย','Channaphai'],['ทองพูน','Thongphun'],['ศรีประทุม','Sripratum'],
+  ['แสนดี','Saendi'],['งามดี','Ngamdi'],['สายทอง','Saithong'],['บุญธรรม','Buntham'],
+  ['หนูแดง','Nudaeng'],['บุญส่ง','Bunsong'],['โชคดี','Chokdi'],['ทองเจือ','Thongchuea'],
+  ['รักไทย','Rakthai'],['บุญเสริม','Bunserm'],['คำแก้ว','Khamkaew'],['ทองมา','Thongma'],
+  ['บุญชู','Bunchu'],['สมพงษ์','Somphong'],['พันธุ์งาม','Phanthungam'],['เนตรทอง','Netthong'],
+  ['ทองน้อย','Thongnoi'],['บุญยัง','Bunyang'],['อุ่นเรือน','Unrueang'],['ชูชีพ','Chuchip'],
+  ['บุญเกิด','Bunkert'],['ทรงศิริ','Songsiri'],['ปานทอง','Panthong'],['สุขใจ','Sukjai'],
+  ['ทับทิม','Thapthim'],['มีแก้ว','Mikaew'],
+  ['บุญญาภา','Bunyapha'],['ศรีเมือง','Srimueang']
+];
+
+/* ===================== STATE ===================== */
+let gender = 'all';
+let colData = { id: [], thFirst: [], thLast: [], enFirst: [], enLast: [] };
+
+/* ===================== HELPERS ===================== */
+function setGender(g, btn) {
+  gender = g;
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// Fisher-Yates shuffle
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// สร้าง unique pairs (ชื่อ × นามสกุล) แบบ shuffle ไม่ซ้ำ
+function buildUniquePairs(nameArr) {
+  const pairs = [];
+  for (const name of nameArr) {
+    for (const last of lastNamePairs) {
+      pairs.push([name, last]);
+    }
+  }
+  return shuffle(pairs);
+}
+
+// Thai ID logic: หลักแรก 1-8, หลัก 2-12 random, หลัก 13 = checksum
+function generateOneID() {
+  const digits = [Math.floor(Math.random() * 8) + 1];
+  for (let i = 0; i < 11; i++) digits.push(Math.floor(Math.random() * 10));
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += digits[i] * (13 - i);
+  digits.push((11 - (sum % 11)) % 10);
+  return digits.join('');
+}
+
+/* ===================== GENERATE ===================== */
+function generate() {
+  const dupOn = document.getElementById('dupEnable').checked;
+  const dupN  = parseInt(document.getElementById('dupCount').value) || 13;
+  let count   = parseInt(document.getElementById('count').value);
+
+  if (isNaN(count) || count < 1) { alert('กรุณาใส่จำนวนที่ถูกต้อง'); return; }
+
+  colData = { id: [], thFirst: [], thLast: [], enFirst: [], enLast: [] };
+
+  if (dupOn) {
+    const g = gender === 'all' ? (Math.random() < 0.5 ? 'male' : 'female') : gender;
+    const namePair = getRandom(g === 'male' ? maleNames : femaleNames);
+    const lastPair = getRandom(lastNamePairs);
+    const oneID    = generateOneID();
+    for (let i = 0; i < dupN; i++) {
+      colData.id.push(oneID);
+      colData.thFirst.push(namePair[0]);
+      colData.thLast.push(lastPair[0]);
+      colData.enFirst.push(namePair[1]);
+      colData.enLast.push(lastPair[1]);
+    }
+    count = dupN;
+  } else {
+    // แยก gender pool
+    const isMaleMode   = gender === 'male';
+    const isFemaleMode = gender === 'female';
+    const MAX_MALE     = maleNames.length * lastNamePairs.length;    // 100×100 = 10,000
+    const MAX_FEMALE   = femaleNames.length * lastNamePairs.length;  // 100×100 = 10,000
+    const MAX_ALL      = MAX_MALE + MAX_FEMALE;                      // 20,000
+
+    const maxAllowed = isMaleMode ? MAX_MALE : isFemaleMode ? MAX_FEMALE : MAX_ALL;
+    if (count > maxAllowed) {
+      alert(`สูงสุด ${maxAllowed.toLocaleString()} รายการ สำหรับ mode นี้`);
+      return;
+    }
+
+    if (gender === 'all') {
+      // สร้าง pool รวม แล้ว shuffle
+      const malePairs   = buildUniquePairs(maleNames);
+      const femalePairs = buildUniquePairs(femaleNames);
+      // สลับชาย-หญิงก่อน shuffle รวม
+      const combined = [];
+      const maxLen = Math.max(malePairs.length, femalePairs.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (i < malePairs.length)   combined.push({ pair: malePairs[i],   g: 'male' });
+        if (i < femalePairs.length) combined.push({ pair: femalePairs[i], g: 'female' });
+      }
+      const pool = shuffle(combined).slice(0, count);
+      pool.forEach(({ pair, g }) => {
+        const [namePair, lastPair] = pair;
+        colData.id.push(generateOneID());
+        colData.thFirst.push(namePair[0]);
+        colData.thLast.push(lastPair[0]);
+        colData.enFirst.push(namePair[1]);
+        colData.enLast.push(lastPair[1]);
+      });
+    } else {
+      const nameArr = gender === 'male' ? maleNames : femaleNames;
+      const pool    = buildUniquePairs(nameArr).slice(0, count);
+      pool.forEach(([namePair, lastPair]) => {
+        colData.id.push(generateOneID());
+        colData.thFirst.push(namePair[0]);
+        colData.thLast.push(lastPair[0]);
+        colData.enFirst.push(namePair[1]);
+        colData.enLast.push(lastPair[1]);
+      });
+    }
+  }
+
+  document.getElementById('outId').value      = colData.id.join('\n');
+  document.getElementById('outThFirst').value = colData.thFirst.join('\n');
+  document.getElementById('outThLast').value  = colData.thLast.join('\n');
+  document.getElementById('outEnFirst').value = colData.enFirst.join('\n');
+  document.getElementById('outEnLast').value  = colData.enLast.join('\n');
+
+  ['copyId','copyThFirst','copyThLast','copyEnFirst','copyEnLast','btnCopyAll'].forEach(id => {
+    document.getElementById(id).disabled = false;
+  });
+
+  const label = dupOn
+    ? `✅ Duplicate mode: สร้าง ${count.toLocaleString()} รายการ (ข้อมูลชุดเดียวกัน)`
+    : `✅ สร้างแล้ว ${colData.id.length.toLocaleString()} รายการ (ชื่อ+นามสกุลไม่ซ้ำกันทุกแถว)`;
+  document.getElementById('status').textContent = label;
+}
+
+/* ===================== COPY ===================== */
+const hintMap = { id:'hintId', thFirst:'hintThFirst', thLast:'hintThLast', enFirst:'hintEnFirst', enLast:'hintEnLast' };
+
+function copyCol(key) {
+  const text   = colData[key].join('\n');
+  const hintId = hintMap[key];
+  const done = () => {
+    document.getElementById(hintId).textContent = '✅ คัดลอกแล้ว!';
+    setTimeout(() => { document.getElementById(hintId).textContent = ''; }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
+  } else { fallback(text, done); }
+}
+
+function copyAll() {
+  if (!colData.id.length) return;
+  // tab-separated, วาง Excel ได้เลย (header + rows)
+  const header = 'เลขบัตร\tชื่อ(TH)\tนามสกุล(TH)\tFirstName\tLastName';
+  const rows   = colData.id.map((_, i) =>
+    [colData.id[i], colData.thFirst[i], colData.thLast[i], colData.enFirst[i], colData.enLast[i]].join('\t')
+  );
+  const text = header + '\n' + rows.join('\n');
+  const done = () => {
+    document.getElementById('status').textContent = '✅ คัดลอกทั้งหมดแล้ว! (วางใน Excel ได้เลย)';
+    setTimeout(() => { document.getElementById('status').textContent = ''; }, 2500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
+  } else { fallback(text, done); }
+}
+
+function fallback(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta);
+  ta.select(); ta.setSelectionRange(0, 99999);
+  document.execCommand('copy'); document.body.removeChild(ta); cb();
+}
+
+document.getElementById('count').addEventListener('keydown', e => { if (e.key === 'Enter') generate(); });
+</script>
+</body>
+</html>
