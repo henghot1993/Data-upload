@@ -3,56 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>QA Test Data Generator พี่เอง</title>
   <style>
+    :root{
+      --bg:#f5f7fa;
+      --panel:#ffffff;
+      --text:#1a1a2e;
+      --muted:#666666;
+      --muted2:#888888;
+      --border:#cccccc;
+      --border-light:#e5e7eb;
+      --input-bg:#ffffff;
+      --blue:#3b82f6;
+      --blue-dark:#2563eb;
+      --green:#22c55e;
+      --green-dark:#16a34a;
+      --dup-bg:#f0fdf4;
+      --dup-border:#86efac;
+      --dup-title:#166534;
+      --disabled:#9ca3af;
+      --shadow:rgba(0,0,0,0.1);
+    }
+    :root[data-theme="dark"]{
+      --bg:#0f1115;
+      --panel:#171a21;
+      --text:#e7e9ee;
+      --muted:#a8adba;
+      --muted2:#8b91a0;
+      --border:#2a2f3a;
+      --border-light:#2a2f3a;
+      --input-bg:#1d212b;
+      --dup-bg:#12241a;
+      --dup-border:#2f6b46;
+      --dup-title:#7fe0a3;
+      --disabled:#4b5261;
+      --shadow:rgba(0,0,0,0.4);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f7fa; min-height: 100vh; padding: 20px 16px; }
-    .container { background: white; border-radius: 12px; padding: 24px 20px; width: 100%; max-width: 980px; margin: 0 auto; box-shadow: 0 2px 16px rgba(0,0,0,0.1); }
-    h1 { font-size: 1.4rem; margin-bottom: 6px; color: #1a1a2e; }
-    .subtitle { color: #666; margin-bottom: 18px; font-size: 0.9rem; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); min-height: 100vh; padding: 20px 16px; }
+    .container { background: var(--panel); border-radius: 12px; padding: 24px 20px; width: 100%; max-width: 980px; margin: 0 auto; box-shadow: 0 2px 16px var(--shadow); }
+    .titlebar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    h1 { font-size: 1.4rem; color: var(--text); }
+    .subtitle { color: var(--muted); margin-bottom: 18px; font-size: 0.9rem; }
+
+    .theme-toggle{
+      display:flex;align-items:center;gap:4px;
+      background:var(--bg);border:1px solid var(--border);
+      border-radius:999px;padding:4px;font-size:12px;
+    }
+    .theme-toggle button{
+      border:none;border-radius:999px;padding:6px 12px;font-size:12px;
+      cursor:pointer;background:transparent;color:var(--muted);font-weight:600;
+    }
+    .theme-toggle button.active{background:var(--blue);color:#fff;}
 
     /* --- controls --- */
     .row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
-    label { font-size: 0.9rem; color: #444; white-space: nowrap; }
-    input[type="number"] { width: 90px; padding: 10px 12px; font-size: 1rem; border: 1.5px solid #ccc; border-radius: 8px; outline: none; }
-    input[type="number"]:focus { border-color: #3b82f6; }
-    .gender-btn { padding: 8px 16px; border: 1.5px solid #ccc; border-radius: 8px; background: white; cursor: pointer; font-size: 0.9rem; transition: all .15s; }
-    .gender-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
-    .btn-generate { background: #3b82f6; color: white; border: none; padding: 11px 24px; font-size: 1rem; border-radius: 8px; cursor: pointer; }
-    .btn-generate:active { background: #2563eb; }
+    label { font-size: 0.9rem; color: var(--muted); white-space: nowrap; }
+    input[type="number"] { width: 90px; padding: 10px 12px; font-size: 1rem; border: 1.5px solid var(--border); border-radius: 8px; outline: none; background: var(--input-bg); color: var(--text); }
+    input[type="number"]:focus { border-color: var(--blue); }
+    .gender-btn { padding: 8px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); cursor: pointer; font-size: 0.9rem; transition: all .15s; }
+    .gender-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+    .btn-generate { background: var(--blue); color: white; border: none; padding: 11px 24px; font-size: 1rem; border-radius: 8px; cursor: pointer; }
+    .btn-generate:active { background: var(--blue-dark); }
 
     /* --- duplicate box --- */
-    .dup-box { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
-    .dup-title { font-size: 0.85rem; font-weight: bold; color: #166534; margin-bottom: 10px; }
+    .dup-box { background: var(--dup-bg); border: 1.5px solid var(--dup-border); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+    .dup-title { font-size: 0.85rem; font-weight: bold; color: var(--dup-title); margin-bottom: 10px; }
     .dup-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .dup-row label { color: #444; }
-    .dup-note { font-size: 0.8rem; color: #6b7280; margin-top: 6px; }
+    .dup-row label { color: var(--text); }
+    .dup-note { font-size: 0.8rem; color: var(--muted2); margin-top: 6px; }
 
     /* --- copy all --- */
-    .btn-copy-all { background: #22c55e; color: white; border: none; padding: 11px 20px; font-size: 0.95rem; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 16px; }
-    .btn-copy-all:disabled { background: #9ca3af; cursor: default; }
-    .btn-copy-all:active { background: #16a34a; }
+    .btn-copy-all { background: var(--green); color: white; border: none; padding: 11px 20px; font-size: 0.95rem; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 16px; }
+    .btn-copy-all:disabled { background: var(--disabled); cursor: default; }
+    .btn-copy-all:active { background: var(--green-dark); }
 
     /* --- status --- */
-    .status { font-size: 0.85rem; color: #16a34a; margin-bottom: 12px; min-height: 18px; }
+    .status { font-size: 0.85rem; color: var(--green-dark); margin-bottom: 12px; min-height: 18px; }
 
     /* --- columns --- */
-    .section-label { font-size: 0.8rem; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; margin-top: 6px; }
+    .section-label { font-size: 0.8rem; font-weight: bold; color: var(--muted2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; margin-top: 6px; }
     .cols { display: flex; gap: 12px; flex-wrap: wrap; }
     .col { flex: 1; min-width: 180px; }
     .col-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .col-label { font-weight: bold; font-size: 0.9rem; color: #333; }
-    .btn-copy { background: #22c55e; color: white; border: none; padding: 5px 12px; font-size: 0.82rem; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-    .btn-copy:disabled { background: #9ca3af; cursor: default; }
-    .btn-copy:active { background: #16a34a; }
-    textarea { width: 100%; height: 220px; padding: 10px; font-size: 0.88rem; font-family: 'Courier New', monospace; border: 1.5px solid #ccc; border-radius: 8px; resize: vertical; color: #333; }
-    .copied-hint { font-size: 0.78rem; color: #16a34a; min-height: 16px; margin-top: 3px; }
-    hr { border: none; border-top: 1.5px dashed #e5e7eb; margin: 16px 0; }
+    .col-label { font-weight: bold; font-size: 0.9rem; color: var(--text); }
+    .btn-copy { background: var(--green); color: white; border: none; padding: 5px 12px; font-size: 0.82rem; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+    .btn-copy:disabled { background: var(--disabled); cursor: default; }
+    .btn-copy:active { background: var(--green-dark); }
+    textarea { width: 100%; height: 220px; padding: 10px; font-size: 0.88rem; font-family: 'Courier New', monospace; border: 1.5px solid var(--border); border-radius: 8px; resize: vertical; color: var(--text); background: var(--input-bg); }
+    .copied-hint { font-size: 0.78rem; color: var(--green-dark); min-height: 16px; margin-top: 3px; }
+    hr { border: none; border-top: 1.5px dashed var(--border-light); margin: 16px 0; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>🧪 QA Test Data Generator พี่เอง</h1>
+  <div class="titlebar">
+    <h1>🧪 QA Test Data Generator พี่เอง</h1>
+    <div class="theme-toggle" id="themeToggle">
+      <button data-mode="light" onclick="setTheme('light')">☀ Light</button>
+      <button data-mode="dark" onclick="setTheme('dark')">🌙 Dark</button>
+    </div>
+  </div>
   <p class="subtitle">สร้างเลขบัตรประชาชน + ชื่อ-นามสกุล ไทย/อังกฤษ สำหรับ Test (สูงสุด 10,000/เพศ | ชื่อ+นามสกุลไม่ซ้ำกัน)</p>
 
   <!-- controls -->
@@ -142,6 +195,20 @@
 </div>
 
 <script>
+/* ===================== THEME ===================== */
+function setTheme(mode){
+  if(mode === 'dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+  }else{
+    document.documentElement.removeAttribute('data-theme');
+  }
+  document.querySelectorAll('#themeToggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+}
+const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+setTheme(prefersDark ? 'dark' : 'light');
+
 /* ===================== DATA ===================== */
 const maleNames = [
   ['สมชาย','Somchai'],['สมศักดิ์','Somsak'],['วิชัย','Wichai'],['ประสิทธิ์','Prasit'],
@@ -283,7 +350,6 @@ function generate() {
   colData = { id: [], thFirst: [], thLast: [], enFirst: [], enLast: [] };
 
   if (dupOn) {
-    // gen count คน แต่ละคนซ้ำ dupN แถว = count × dupN แถวรวม
     for (let p = 0; p < count; p++) {
       const g = gender === 'all' ? (Math.random() < 0.5 ? 'male' : 'female') : gender;
       const namePair = getRandom(g === 'male' ? maleNames : femaleNames);
@@ -299,12 +365,11 @@ function generate() {
     }
     count = count * dupN;
   } else {
-    // แยก gender pool
     const isMaleMode   = gender === 'male';
     const isFemaleMode = gender === 'female';
-    const MAX_MALE     = maleNames.length * lastNamePairs.length;    // 100×100 = 10,000
-    const MAX_FEMALE   = femaleNames.length * lastNamePairs.length;  // 100×100 = 10,000
-    const MAX_ALL      = MAX_MALE + MAX_FEMALE;                      // 20,000
+    const MAX_MALE     = maleNames.length * lastNamePairs.length;
+    const MAX_FEMALE   = femaleNames.length * lastNamePairs.length;
+    const MAX_ALL      = MAX_MALE + MAX_FEMALE;
 
     const maxAllowed = isMaleMode ? MAX_MALE : isFemaleMode ? MAX_FEMALE : MAX_ALL;
     if (count > maxAllowed) {
@@ -313,10 +378,8 @@ function generate() {
     }
 
     if (gender === 'all') {
-      // สร้าง pool รวม แล้ว shuffle
       const malePairs   = buildUniquePairs(maleNames);
       const femalePairs = buildUniquePairs(femaleNames);
-      // สลับชาย-หญิงก่อน shuffle รวม
       const combined = [];
       const maxLen = Math.max(malePairs.length, femalePairs.length);
       for (let i = 0; i < maxLen; i++) {
@@ -378,7 +441,6 @@ function copyCol(key) {
 
 function copyAll() {
   if (!colData.id.length) return;
-  // tab-separated, วาง Excel ได้เลย (header + rows)
   const header = 'เลขบัตร\tชื่อ(TH)\tนามสกุล(TH)\tFirstName\tLastName';
   const rows   = colData.id.map((_, i) =>
     [colData.id[i], colData.thFirst[i], colData.thLast[i], colData.enFirst[i], colData.enLast[i]].join('\t')
